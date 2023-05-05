@@ -352,14 +352,15 @@ pub fn curve_to_key_size(curve: EcCurve) -> KeySizeInBits {
 /// Import an NIST EC key in SEC1 ECPrivateKey format.
 pub fn import_sec1_private_key(data: &[u8]) -> Result<KeyMaterial, Error> {
     let ec_key = sec1::EcPrivateKey::from_der(data)?;
-    let ec_parameters = ec_key.parameters.ok_or(km_err!(
-        InvalidArgument,
-        "sec1 formatted EC private key didn't have a parameters field"
-    ))?;
-    let parameters_oid = ec_parameters.named_curve().ok_or(km_err!(
-        InvalidArgument,
-        "couldn't retrieve parameters oid from sec1 ECPrivateKey formatted ec key parameters"
-    ))?;
+    let ec_parameters = ec_key.parameters.ok_or_else(|| {
+        km_err!(InvalidArgument, "sec1 formatted EC private key didn't have a parameters field")
+    })?;
+    let parameters_oid = ec_parameters.named_curve().ok_or_else(|| {
+        km_err!(
+            InvalidArgument,
+            "couldn't retrieve parameters oid from sec1 ECPrivateKey formatted ec key parameters"
+        )
+    })?;
     let algorithm =
         AlgorithmIdentifier { oid: X509_NIST_OID, parameters: Some(AnyRef::from(&parameters_oid)) };
     let pkcs8_key = pkcs8::PrivateKeyInfo::new(algorithm, data);

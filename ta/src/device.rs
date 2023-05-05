@@ -167,10 +167,9 @@ pub trait BootloaderStatus {
 /// implementation of IRemotelyProvisionedComponent (IRPC) HAL.
 /// Note: The devices only supporting IRPC V3+ may ignore the optional IRPC V2 specific types in
 /// the method signatures.
-/// TODO (b/258069484): Add smoke tests to this device trait.
 pub trait RetrieveRpcArtifacts {
-    // Retrieve secret bytes (of the given output length) derived from a hardware backed key.
-    // For a given context, the output is deterministic.
+    /// Retrieve secret bytes (of the given output length) derived from a hardware backed key.
+    /// For a given context, the output is deterministic.
     fn derive_bytes_from_hbk(
         &self,
         hkdf: &dyn crypto::Hkdf,
@@ -178,7 +177,7 @@ pub trait RetrieveRpcArtifacts {
         output_len: usize,
     ) -> Result<Vec<u8>, Error>;
 
-    // Compute HMAC_SHA256 over the given input using a key derived from hardware.
+    /// Compute HMAC_SHA256 over the given input using a key derived from hardware.
     fn compute_hmac_sha256(
         &self,
         hmac: &dyn crypto::Hmac,
@@ -189,16 +188,16 @@ pub trait RetrieveRpcArtifacts {
         crypto::hmac_sha256(hmac, &secret, input)
     }
 
-    // Retrieve the information about the DICE chain belonging to the IRPC HAL implementation.
+    /// Retrieve the information about the DICE chain belonging to the IRPC HAL implementation.
     fn get_dice_info(&self, test_mode: rpc::TestMode) -> Result<DiceInfo, Error>;
 
-    // Sign the input data with the CDI leaf private key of the IRPC HAL implementation. In IRPC V2,
-    // the `data` to be signed is the [`SignedMac_structure`] in ProtectedData.aidl, when signing
-    // the ephemeral MAC key used to authenticate the public keys. In IRPC V3, the `data` to be
-    // signed is the [`SignedDataSigStruct`].
-    // If a particular implementation would like to return the signature in a COSE_Sign1 message,
-    // they can mark this unimplemented and override the default implementation in the
-    // `sign_data_in_cose_sign1` method below.
+    /// Sign the input data with the CDI leaf private key of the IRPC HAL implementation. In IRPC V2,
+    /// the `data` to be signed is the [`SignedMac_structure`] in ProtectedData.aidl, when signing
+    /// the ephemeral MAC key used to authenticate the public keys. In IRPC V3, the `data` to be
+    /// signed is the [`SignedDataSigStruct`].
+    /// If a particular implementation would like to return the signature in a COSE_Sign1 message,
+    /// they can mark this unimplemented and override the default implementation in the
+    /// `sign_data_in_cose_sign1` method below.
     fn sign_data(
         &self,
         ec: &dyn crypto::Ec,
@@ -206,9 +205,9 @@ pub trait RetrieveRpcArtifacts {
         rpc_v2: Option<RpcV2Req>,
     ) -> Result<Vec<u8>, Error>;
 
-    // Sign the payload and return a COSE_Sign1 message. In IRPC V2, the `payload` is the MAC Key.
-    // In IRPC V3, the `payload` is the `Data` that the `SignedData` is parameterized with (i.e. a
-    // CBOR array containing `challenge` and `CsrPayload`).
+    /// Sign the payload and return a COSE_Sign1 message. In IRPC V2, the `payload` is the MAC Key.
+    /// In IRPC V3, the `payload` is the `Data` that the `SignedData` is parameterized with (i.e. a
+    /// CBOR array containing `challenge` and `CsrPayload`).
     fn sign_data_in_cose_sign1(
         &self,
         ec: &dyn crypto::Ec,

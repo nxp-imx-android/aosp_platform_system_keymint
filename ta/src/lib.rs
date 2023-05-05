@@ -106,12 +106,12 @@ pub struct KeyMintTa<'a> {
     /// Attestation ID information, fixed forever for a device, but retrieved on first use.
     attestation_id_info: RefCell<Option<Rc<AttestationIdInfo>>>,
 
-    // Public DICE artifacts (UDS certs and the DICE chain) included in the certificate signing
-    // requests (CSR) and the algorithm used to sign the CSR for IRemotelyProvisionedComponent
-    // (IRPC) HAL. Fixed for a device. Retrieved on first use.
-    //
-    // Note: This information is cached only in the implementations of IRPC HAL V3 and
-    // IRPC HAL V2 in production mode.
+    /// Public DICE artifacts (UDS certs and the DICE chain) included in the certificate signing
+    /// requests (CSR) and the algorithm used to sign the CSR for IRemotelyProvisionedComponent
+    /// (IRPC) HAL. Fixed for a device. Retrieved on first use.
+    ///
+    /// Note: This information is cached only in the implementations of IRPC HAL V3 and
+    /// IRPC HAL V2 in production mode.
     dice_info: RefCell<Option<Rc<DiceInfo>>>,
 
     /// Whether the device is still in early-boot.

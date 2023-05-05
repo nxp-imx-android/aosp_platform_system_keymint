@@ -186,7 +186,7 @@ impl<'a> KeyMintTa<'a> {
             return Err(rpc_err!(Removed, "generate_cert_req is not supported in IRPC V3+ HAL."));
         }
         let _device_info = self.rpc_device_info()?;
-        Err(km_err!(Unimplemented, "TODO: GenerateCertificateRequest"))
+        Err(km_err!(Unimplemented, "GenerateCertificateRequest is only required for RKP before v3"))
     }
 
     pub(crate) fn generate_cert_req_v2(
