@@ -12,7 +12,9 @@ use der::{
 use der::{Decode, Encode, ErrorKind, Length};
 use flagset::FlagSet;
 use kmr_common::crypto::KeyMaterial;
-use kmr_common::{crypto, get_tag_value, km_err, tag, try_to_vec, vec_try_with_capacity, Error};
+use kmr_common::{
+    crypto, der_err, get_tag_value, km_err, tag, try_to_vec, vec_try_with_capacity, Error,
+};
 use kmr_common::{get_bool_tag_value, get_opt_tag_value, FallibleAllocExt};
 use kmr_wire::{
     keymint,
@@ -49,7 +51,8 @@ pub(crate) fn certificate<'a>(
     Ok(Certificate {
         signature_algorithm: tbs_cert.signature,
         tbs_certificate: tbs_cert,
-        signature: BitStringRef::new(0, sig_val)?,
+        signature: BitStringRef::new(0, sig_val)
+            .map_err(|e| der_err!(e, "failed to build BitStringRef"))?,
     })
 }
 
@@ -127,14 +130,17 @@ pub(crate) fn tbs_certificate<'a>(
 
     Ok(TbsCertificate {
         version: Version::V3,
-        serial_number: UIntRef::new(cert_serial)?,
+        serial_number: UIntRef::new(cert_serial)
+            .map_err(|e| der_err!(e, "failed to build serial number for {:?}", cert_serial))?,
         signature: AlgorithmIdentifier { oid: sig_alg_oid, parameters: None },
-        issuer: RdnSequence::from_der(cert_issuer)?,
+        issuer: RdnSequence::from_der(cert_issuer)
+            .map_err(|e| der_err!(e, "failed to build issuer"))?,
         validity: x509_cert::time::Validity {
             not_before: validity_time_from_datetime(not_before)?,
             not_after: validity_time_from_datetime(not_after)?,
         },
-        subject: RdnSequence::from_der(cert_subject)?,
+        subject: RdnSequence::from_der(cert_subject)
+            .map_err(|e| der_err!(e, "failed to build subject"))?,
         subject_public_key_info: spki,
         issuer_unique_id: None,
         subject_unique_id: None,
@@ -166,17 +172,26 @@ fn validity_time_from_datetime(when: DateTime) -> Result<Time, Error> {
 
         let duration = Duration::from_secs(u64::try_from(secs_since_epoch).map_err(dt_err)?);
         if duration >= MAX_UTC_TIME {
-            Ok(Time::GeneralTime(GeneralizedTime::from_unix_duration(duration)?))
+            Ok(Time::GeneralTime(
+                GeneralizedTime::from_unix_duration(duration)
+                    .map_err(|e| der_err!(e, "failed to build GeneralTime for {:?}", when))?,
+            ))
         } else {
-            Ok(Time::UtcTime(UtcTime::from_unix_duration(duration)?))
+            Ok(Time::UtcTime(
+                UtcTime::from_unix_duration(duration)
+                    .map_err(|e| der_err!(e, "failed to build UtcTime for {:?}", when))?,
+            ))
         }
     } else {
         // TODO: cope with negative offsets from Unix Epoch.
-        Ok(Time::GeneralTime(GeneralizedTime::from_unix_duration(Duration::from_secs(0))?))
+        Ok(Time::GeneralTime(
+            GeneralizedTime::from_unix_duration(Duration::from_secs(0))
+                .map_err(|e| der_err!(e, "failed to build GeneralizedTime(0) for {:?}", when))?,
+        ))
     }
 }
 
-pub(crate) fn asn1_der_encode<T: Encode>(obj: &T) -> Result<Vec<u8>, Error> {
+pub(crate) fn asn1_der_encode<T: Encode>(obj: &T) -> Result<Vec<u8>, der::Error> {
     let mut encoded_data = Vec::<u8>::new();
     obj.encode_to_vec(&mut encoded_data)?;
     Ok(encoded_data)
@@ -439,7 +454,11 @@ impl<'a> AuthorizationList<'a> {
         );
         check_attestation_id!(keygen_params, AttestationIdModel, attestation_ids.map(|v| &v.model));
 
-        let encoded_rot = if let Some(rot) = rot_info { Some(rot.to_vec()?) } else { None };
+        let encoded_rot = if let Some(rot) = rot_info {
+            Some(rot.to_vec().map_err(|e| der_err!(e, "failed to encode RoT"))?)
+        } else {
+            None
+        };
         Ok(Self {
             auths: auths.into(),
             keygen_params: keygen_params.into(),
@@ -491,12 +510,6 @@ impl<'a> AuthorizationList<'a> {
             app_id: attest_app_id,
         })
     }
-}
-
-/// Convert an error into a default `der::Error`.
-#[inline]
-fn der_err(_e: Error) -> der::Error {
-    der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
 }
 
 /// Convert an error into a `der::Error` indicating allocation failure.
@@ -932,7 +945,10 @@ macro_rules! asn1_integer {
         $contents:ident, $params:expr, $variant:ident
     } => {
         {
-            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(der_err)? {
+            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(|_e| {
+                log::warn!("failed to get {} value for ext", stringify!($variant));
+                der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
+            })? {
                     $contents.try_push(Box::new(ExplicitTaggedValue {
                         tag: raw_tag_value(Tag::$variant),
                         val: *val as i64
@@ -946,7 +962,10 @@ macro_rules! asn1_integer_newtype {
         $contents:ident, $params:expr, $variant:ident
     } => {
         {
-            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(der_err)? {
+            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(|_e| {
+                log::warn!("failed to get {} value for ext", stringify!($variant));
+                der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
+            })? {
                     $contents.try_push(Box::new(ExplicitTaggedValue {
                         tag: raw_tag_value(Tag::$variant),
                         val: val.0 as i64
@@ -960,7 +979,10 @@ macro_rules! asn1_integer_datetime {
         $contents:ident, $params:expr, $variant:ident
     } => {
         {
-            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(der_err)? {
+            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(|_e| {
+                log::warn!("failed to get {} value for ext", stringify!($variant));
+                der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
+            })? {
                     $contents.try_push(Box::new(ExplicitTaggedValue {
                         tag: raw_tag_value(Tag::$variant),
                         val: val.ms_since_epoch
@@ -974,7 +996,10 @@ macro_rules! asn1_null {
         $contents:ident, $params:expr, $variant:ident
     } => {
         {
-            if get_bool_tag_value!($params.as_ref(), $variant).map_err(der_err)? {
+            if get_bool_tag_value!($params.as_ref(), $variant).map_err(|_e| {
+                log::warn!("failed to get {} value for ext", stringify!($variant));
+                der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
+            })? {
                     $contents.try_push(Box::new(ExplicitTaggedValue {
                         tag: raw_tag_value(Tag::$variant),
                         val: ()
@@ -988,7 +1013,10 @@ macro_rules! asn1_octet_string {
         $contents:ident, $params:expr, $variant:ident
     } => {
         {
-            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(der_err)? {
+            if let Some(val) = get_opt_tag_value!($params.as_ref(), $variant).map_err(|_e| {
+                log::warn!("failed to get {} value for ext", stringify!($variant));
+                der::Error::new(der::ErrorKind::Failed, der::Length::ZERO)
+            })? {
                     $contents.try_push(Box::new(ExplicitTaggedValue {
                         tag: raw_tag_value(Tag::$variant),
                         val: der::asn1::OctetStringRef::new(val)?,
