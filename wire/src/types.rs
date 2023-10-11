@@ -27,9 +27,34 @@ pub struct RsaExponent(pub u64);
 /// Default maximum supported size for CBOR-serialized messages.
 pub const DEFAULT_MAX_SIZE: usize = 4096;
 
-/// Marker type indicating failure to convert into an `enum` variant.
+/// Marker type indicating failure to convert into a wire type.  For `enum` wire types, the variant
+/// names match the `enum` whose value failed to convert.
 #[derive(Debug)]
-pub struct ValueNotRecognized;
+pub enum ValueNotRecognized {
+    // Enum type names.
+    KeyPurpose,
+    Algorithm,
+    BlockMode,
+    Digest,
+    PaddingMode,
+    EcCurve,
+    ErrorCode,
+    HardwareAuthenticatorType,
+    KeyFormat,
+    KeyOrigin,
+    SecurityLevel,
+    Tag,
+    TagType,
+    KmVersion,
+    EekCurve,
+    Origin,
+    // Non-enum types.
+    Bool,
+    Blob,
+    DateTime,
+    Integer,
+    LongInteger,
+}
 
 /// Trait that associates an enum value of the specified type with a type.
 /// Values of the `enum` type `T` are used to identify particular message types.
