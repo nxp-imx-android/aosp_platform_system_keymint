@@ -350,6 +350,14 @@ pub struct SetHalInfoRequest {
 #[derive(Debug, AsCborValue)]
 pub struct SetHalInfoResponse {}
 
+// HAL->TA at start of day.
+#[derive(Debug, PartialEq, Eq, AsCborValue)]
+pub struct SetHalVersionRequest {
+    pub aidl_version: u32,
+}
+#[derive(Debug, AsCborValue)]
+pub struct SetHalVersionResponse {}
+
 // Boot loader->TA at start of day.
 #[derive(Debug, AsCborValue)]
 pub struct SetBootInfoRequest {
@@ -635,6 +643,7 @@ declare_req_rsp_enums! { KeyMintOperation  =>    (PerformOpReq, PerformOpRsp) {
     SetHalInfo = 0x81 =>                               (SetHalInfoRequest, SetHalInfoResponse),
     SetBootInfo = 0x82 =>                              (SetBootInfoRequest, SetBootInfoResponse),
     SetAttestationIds = 0x83 =>                        (SetAttestationIdsRequest, SetAttestationIdsResponse),
+    SetHalVersion = 0x84 =>                            (SetHalVersionRequest, SetHalVersionResponse),
 } }
 
 /// Indicate whether an operation is part of the `IRemotelyProvisionedComponent` HAL.
