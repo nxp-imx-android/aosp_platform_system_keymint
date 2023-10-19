@@ -298,7 +298,7 @@ pub fn cbor_type_error<T>(value: &cbor::value::Value, want: &'static str) -> Res
 /// Read a [`cbor::value::Value`] from a byte slice, failing if any extra data remains after the
 /// `Value` has been read.
 pub fn read_to_value(mut slice: &[u8]) -> Result<cbor::value::Value, CborError> {
-    let value = cbor::de::from_reader(&mut slice)?;
+    let value = cbor::de::from_reader_with_recursion_limit(&mut slice, 16)?;
     if slice.is_empty() {
         Ok(value)
     } else {
