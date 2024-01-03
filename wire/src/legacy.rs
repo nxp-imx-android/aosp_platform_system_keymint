@@ -1,5 +1,6 @@
 // Copyright 2022, The Android Open Source Project
 //
+// Copyright 2024 NXP
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -537,6 +538,13 @@ pub struct SetWrappedAttestationKeyRequest {
 #[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
 pub struct SetWrappedAttestationKeyResponse {}
 
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
+pub struct GetMppubkRequest {}
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize, ZeroizeOnDrop)]
+pub struct GetMppubkResponse {
+    pub key: Vec<u8>,
+}
+
 macro_rules! declare_req_rsp_enums {
     {
         $cenum:ident => ($reqenum:ident, $rspenum:ident)
@@ -625,6 +633,8 @@ declare_req_rsp_enums! { TrustyKeymasterOperation => (TrustyPerformOpReq, Trusty
     SetAttestationIdsKM3 = 0xc001 =>                 (SetAttestationIdsKM3Request, SetAttestationIdsKM3Response),
 
     ConfigureBootPatchlevel = 0xd0000 =>             (ConfigureBootPatchlevelRequest, ConfigureBootPatchlevelResponse),
+
+    GetMppubk = 0xf001 =>                            (GetMppubkRequest, GetMppubkResponse),
 } }
 
 // Possible legacy Trusty Keymaster operation requests for the secure port.
@@ -640,6 +650,7 @@ pub fn is_trusty_bootloader_code(code: u32) -> bool {
         TrustyKeymasterOperation::n(code),
         Some(TrustyKeymasterOperation::SetBootParams)
             | Some(TrustyKeymasterOperation::ConfigureBootPatchlevel)
+            | Some(TrustyKeymasterOperation::GetMppubk)
     )
 }
 
@@ -648,6 +659,7 @@ pub fn is_trusty_bootloader_req(req: &TrustyPerformOpReq) -> bool {
     matches!(
         req,
         TrustyPerformOpReq::SetBootParams(_) | TrustyPerformOpReq::ConfigureBootPatchlevel(_)
+        | TrustyPerformOpReq::GetMppubk(_)
     )
 }
 
