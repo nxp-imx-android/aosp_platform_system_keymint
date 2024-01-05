@@ -533,6 +533,24 @@ pub struct GetMppubkResponse {
     pub key: Vec<u8>,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize, ZeroizeOnDrop)]
+pub struct AppendAttestationCertChainEncRequest {
+    #[zeroize(skip)]
+    pub algorithm: Algorithm,
+    pub cert_data: Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
+pub struct AppendAttestationCertChainEncResponse {}
+
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize, ZeroizeOnDrop)]
+pub struct SetAttestationKeyEncRequest {
+    #[zeroize(skip)]
+    pub algorithm: Algorithm,
+    pub key_data: Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
+pub struct SetAttestationKeyEncResponse {}
+
 macro_rules! declare_req_rsp_enums {
     {
         $cenum:ident => ($reqenum:ident, $rspenum:ident)
@@ -620,6 +638,8 @@ declare_req_rsp_enums! { TrustyKeymasterOperation => (TrustyPerformOpReq, Trusty
     ConfigureBootPatchlevel = 0xd0000 =>             (ConfigureBootPatchlevelRequest, ConfigureBootPatchlevelResponse),
 
     GetMppubk = 0xf001 =>                            (GetMppubkRequest, GetMppubkResponse),
+    AppendAttestationCertChainEnc = 0xf002 =>        (AppendAttestationCertChainEncRequest, AppendAttestationCertChainEncResponse),
+    SetAttestationKeyEnc = 0xf003 =>                 (SetAttestationKeyEncRequest, SetAttestationKeyEncResponse),
 } }
 
 // Possible legacy Trusty Keymaster operation requests for the secure port.
@@ -657,6 +677,8 @@ pub fn is_trusty_provisioning_code(code: u32) -> bool {
             | Some(TrustyKeymasterOperation::ClearAttestationCertChain)
             | Some(TrustyKeymasterOperation::SetWrappedAttestationKey)
             | Some(TrustyKeymasterOperation::SetAttestationIds)
+            | Some(TrustyKeymasterOperation::AppendAttestationCertChainEnc)
+            | Some(TrustyKeymasterOperation::SetAttestationKeyEnc)
     )
 }
 
@@ -669,6 +691,8 @@ pub fn is_trusty_provisioning_req(req: &TrustyPerformOpReq) -> bool {
             | TrustyPerformOpReq::ClearAttestationCertChain(_)
             | TrustyPerformOpReq::SetWrappedAttestationKey(_)
             | TrustyPerformOpReq::SetAttestationIds(_)
+            | TrustyPerformOpReq::AppendAttestationCertChainEnc(_)
+            | TrustyPerformOpReq::SetAttestationKeyEnc(_)
     )
 }
 
