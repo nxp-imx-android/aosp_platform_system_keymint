@@ -563,6 +563,14 @@ pub struct SetAttestationKeyEncRequest {
 #[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
 pub struct SetAttestationKeyEncResponse {}
 
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
+pub struct VerifySecureUnlockRequest {
+    pub serial_num: Vec<u8>,
+    pub credential: Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Debug, LegacySerialize)]
+pub struct VerifySecureUnlockResponse {}
+
 macro_rules! declare_req_rsp_enums {
     {
         $cenum:ident => ($reqenum:ident, $rspenum:ident)
@@ -655,6 +663,7 @@ declare_req_rsp_enums! { TrustyKeymasterOperation => (TrustyPerformOpReq, Trusty
     GetMppubk = 0xf001 =>                            (GetMppubkRequest, GetMppubkResponse),
     AppendAttestationCertChainEnc = 0xf002 =>        (AppendAttestationCertChainEncRequest, AppendAttestationCertChainEncResponse),
     SetAttestationKeyEnc = 0xf003 =>                 (SetAttestationKeyEncRequest, SetAttestationKeyEncResponse),
+    VerifySecureUnlock = 0xf004 =>                   (VerifySecureUnlockRequest, VerifySecureUnlockResponse),
 } }
 
 // Possible legacy Trusty Keymaster operation requests for the secure port.
@@ -671,6 +680,7 @@ pub fn is_trusty_bootloader_code(code: u32) -> bool {
         Some(TrustyKeymasterOperation::SetBootParams)
             | Some(TrustyKeymasterOperation::ConfigureBootPatchlevel)
             | Some(TrustyKeymasterOperation::GetMppubk)
+            | Some(TrustyKeymasterOperation::VerifySecureUnlock)
     )
 }
 
@@ -679,7 +689,7 @@ pub fn is_trusty_bootloader_req(req: &TrustyPerformOpReq) -> bool {
     matches!(
         req,
         TrustyPerformOpReq::SetBootParams(_) | TrustyPerformOpReq::ConfigureBootPatchlevel(_)
-        | TrustyPerformOpReq::GetMppubk(_)
+        | TrustyPerformOpReq::GetMppubk(_) | TrustyPerformOpReq::VerifySecureUnlock(_)
     )
 }
 
