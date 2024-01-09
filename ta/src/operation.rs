@@ -1,5 +1,7 @@
 // Copyright 2022, The Android Open Source Project
 //
+// Copyright 2024 NXP
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -15,14 +17,15 @@
 //! TA functionality related to in-progress crypto operations.
 
 use alloc::{boxed::Box, vec::Vec};
+use alloc::vec;
 use kmr_common::{
     crypto,
-    crypto::{aes, AadOperation, AccumulatingOperation, EmittingOperation, KeyMaterial},
+    crypto::{aes, AadOperation, AccumulatingOperation, EmittingOperation, KeyMaterial, hmac},
     get_bool_tag_value, get_opt_tag_value, get_tag_value, keyblob, km_err, tag, try_to_vec, Error,
     FallibleAllocExt,
 };
 use kmr_wire::{
-    keymint::{ErrorCode, HardwareAuthToken, KeyParam, KeyPurpose},
+    keymint::{ErrorCode, HardwareAuthToken, KeyParam, KeyPurpose, Digest},
     secureclock::{TimeStampToken, Timestamp},
     InternalBeginResult,
 };
@@ -729,9 +732,13 @@ impl crate::KeyMintTa {
                     token.len()
                 ));
             }
-            if self.verify_device_hmac(data, token).map_err(|e| {
-                km_err!(VerificationFailed, "failed to perform HMAC on confirmation token: {:?}", e)
-            })? {
+            // Use test key
+            let key = hmac::Key(vec![0xA5; 32]);
+            let mut hmac_op = self.imp.hmac.begin(key.into(), Digest::Sha256)?;
+            hmac_op.update(data)?;
+            let mac = hmac_op.finish()?;
+
+            if self.imp.compare.eq(&mac, token) {
                 Ok(())
             } else {
                 Err(km_err!(NoUserConfirmation, "trusted confirmation token did not match"))
